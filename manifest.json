@@ -1,0 +1,21 @@
+{
+  "name": "C-Converter",
+  "short_name": "C-C",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#e2b04a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "CLOUD (1).png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "CLOUD (1).png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
