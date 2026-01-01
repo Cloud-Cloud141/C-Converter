@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Bild → Multi-Format & ICO Konverter</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-secondary: #111827;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --card: #111827;
+      --border: #1f2937;
+      --accent: #3b82f6;
+      --drop-bg: #020617;
+      --danger: #f97373;
+      --success: #22c55e;
+    }
+    body[data-theme="light"] {
+      --bg: #f3f4f6;
+      --bg-secondary: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --card: #ffffff;
+      --border: #d1d5db;
+      --accent: #2563eb;
+      --drop-bg: #f9fafb;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+    .wrapper {
+      width: 100%;
+      max-width: 1280px;
+      background: var(--card);
+      border-radius: 24px;
+      padding: 24px 28px 28px;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+      display: grid;
+      grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+      gap: 24px;
+    }
+    @media (max-width: 900px) {
+      .wrapper {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 20px;
+      margin: 0;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .theme-toggle {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Bubble Grid */
+    .bubble-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding: 6px 0 6px 2px;
+      margin-bottom: 10px;
+    }
+    .bubble {
+      width: 80px;
+      height: 80px;
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      background: #000;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.45);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.25s ease;
+    }
+    .bubble:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 26px rgba(0,0,0,0.55);
+    }
+    .bubble img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .bubble.removing {
+      transform: scale(0.6);
+      opacity: 0;
+      box-shadow: none;
+    }
+
+    .bubble-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    /* Dropzone */
+    .dropzone {
+      margin-top: 4px;
+      border-radius: 16px;
+      border: 1px dashed var(--border);
+      background: var(--drop-bg);
+      padding: 14px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+      width: 100%;
+    }
+    .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(37,99,235,0.08);
+      transform: translateY(-1px);
+    }
+    .dropzone strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+    .dropzone span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .status {
+      font-size: 12px;
+      min-height: 18px;
+      margin-top: 8px;
+      text-align: left;
+    }
+    .status.ok { color: var(--success); }
+    .status.error { color: var(--danger); }
+
+    .convert-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .convert-btn {
+      padding: 9px 16px;
+      border-radius: 999px;
+      border: none;
+      background: var(--accent);
+      color: #ffffff;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 10px 25px rgba(37,99,235,0.45);
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+      white-space: nowrap;
+    }
+    .convert-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+      box-shadow: none;
+      transform: none;
+    }
+    .convert-btn:not(:disabled):hover {
+      transform: translateY(-1px);
+      background: #1d4ed8;
+      box-shadow: 0 14px 30px rgba(37,99,235,0.6);
+    }
+
+    .zip-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .zip-toggle input {
+      accent-color: var(--accent);
+    }
+
+    /* Formatkacheln */
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .format-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .tile {
+      border-radius: 18px;
+      padding: 14px 12px;
+      color: #ffffff;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 180px;
+      box-shadow: 0 12px 26px rgba(0,0,0,0.4);
+      transform: translateY(0);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
+    }
+    .tile.inactive {
+      opacity: 0.45;
+      filter: grayscale(0.2);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+    }
+    .tile.active {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 35px rgba(0,0,0,0.65);
+    }
+    .tile:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.8);
+    }
+
+    .tile-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .tile-icon {
+      font-size: 18px;
+    }
+    .tile-meta {
+      font-size: 12px;
+      margin-top: 4px;
+      color: rgba(255,255,255,0.9);
+    }
+    .tile-footnote {
+      font-size: 11px;
+      opacity: 0.85;
+    }
+
+    .tile.png { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+    .tile.jpg { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+    .tile.webp { background: linear-gradient(135deg, #22c55e, #15803d); }
+    .tile.gif { background: linear-gradient(135deg, #a855f7, #7c2d9c); }
+    .tile.bmp { background: linear-gradient(135deg, #eab308, #ca8a04); }
+    .tile.ico { background: linear-gradient(135deg, #f97316, #c2410c); }
+    .tile.avif { background: linear-gradient(135deg, #06b6d4, #0e7490); }
+    .tile.svg { background: linear-gradient(135deg, #ec4899, #be185d); }
+
+    input[type="file"] { display: none; }
+
+    /* ICO Optionen */
+    .ico-options {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      font-size: 12px;
+    }
+    .ico-options-title {
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ico-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .ico-mode {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 160px;
+    }
+    .ico-mode label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .ico-sizes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      flex: 1;
+    }
+    .ico-sizes label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .ico-sizes input,
+    .ico-mode input {
+      accent-color: var(--accent);
+    }
+
+    .hint-text {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body data-theme="dark">
+<div class="wrapper">
+
+  <!-- LEFT -->
+  <div class="left">
+    <header>
+      <div>
+        <h1>Bild → Multi-Format & ICO Konverter</h1>
+        <div class="subtitle">Multi-Upload · Offline · ZIP · Custom ICO</div>
+      </div>
+      <button class="theme-toggle" id="themeToggle" type="button">
+        <span>🌙</span><span id="themeLabel">Dark</span>
+      </button>
+    </header>
+
+    <div class="bubble-hint">Tipp: Auf eine Bubble klicken, um ein Bild zu entfernen.</div>
+    <div id="bubbleGrid" class="bubble-grid"></div>
+
+    <div id="dropzone" class="dropzone">
+      <strong>Bilder hierher ziehen</strong>
+      <span>oder klicken, um 1–100 Bilder auszuwählen</span>
+    </div>
+
+    <div class="convert-row">
+      <button id="convertBtn" class="convert-btn" type="button" disabled>
+        🔄 Konvertieren & herunterladen
+      </button>
+      <label class="zip-toggle">
+        <input type="checkbox" id="zipToggle" checked>
+        <span>Alles als ZIP (empfohlen)</span>
+      </label>
+    </div>
+
+    <div id="status" class="status"></div>
+    <input id="fileInput" type="file" accept="image/*" multiple>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="section-title">Ausgabeformate:</div>
+
+    <div class="format-grid" id="formatGrid">
+      <div class="tile png active" data-format="png">
+        <div class="tile-header">
+          <div class="tile-icon">🖼️</div>
+          <div>PNG</div>
+        </div>
+        <div class="tile-meta">Verlustfrei, Transparenz, Web-Standard.</div>
+      </div>
+
+      <div class="tile jpg active" data-format="jpeg">
+        <div class="tile-header">
+          <div class="tile-icon">📸</div>
+          <div>JPG</div>
+        </div>
+        <div class="tile-meta">Fotos, kleine Dateien, universell.</div>
+      </div>
+
+      <div class="tile webp active" data-format="webp">
+        <div class="tile-header">
+          <div class="tile-icon">🌐</div>
+          <div>WEBP</div>
+        </div>
+        <div class="tile-meta">Modernes Webformat, gute Qualität.</div>
+      </div>
+
+      <div class="tile gif inactive" data-format="gif">
+        <div class="tile-header">
+          <div class="tile-icon">🎞️</div>
+          <div>GIF</div>
+        </div>
+        <div class="tile-meta">Nur Standbilder (kein animiertes GIF).</div>
+      </div>
+
+      <div class="tile bmp inactive" data-format="bmp">
+        <div class="tile-header">
+          <div class="tile-icon">🧩</div>
+          <div>BMP</div>
+        </div>
+        <div class="tile-meta">Unkomprimiert, groß, eher technisch.</div>
+      </div>
+
+      <div class="tile avif inactive" data-format="avif">
+        <div class="tile-header">
+          <div class="tile-icon">⚡</div>
+          <div>AVIF</div>
+        </div>
+        <div class="tile-meta">Sehr effizient, moderne Browser.</div>
+      </div>
+
+      <div class="tile svg inactive" data-format="svg">
+        <div class="tile-header">
+          <div class="tile-icon">🧬</div>
+          <div>SVG*</div>
+        </div>
+        <div class="tile-meta">Nur wenn Original eine SVG-Datei ist.</div>
+      </div>
+
+      <div class="tile ico active" data-format="ico">
+        <div class="tile-header">
+          <div class="tile-icon">🗂️</div>
+          <div>ICO</div>
+        </div>
+        <div class="tile-meta">Windows Icons mit mehreren Größen.</div>
+        <div class="tile-footnote">Größen unten wählbar.</div>
+      </div>
+    </div>
+
+    <div class="ico-options" id="icoOptions">
+      <div class="ico-options-title">
+        🧱 ICO Optionen
+      </div>
+      <div class="ico-row">
+        <div class="ico-mode">
+          <label>
+            <input type="radio" name="icoMode" value="auto" checked>
+            <span>Automatisch (256×256)</span>
+          </label>
+          <label>
+            <input type="radio" name="icoMode" value="custom">
+            <span>Custom Größen</span>
+          </label>
+        </div>
+
+        <div class="ico-sizes" id="icoSizeContainer">
+          <label><input type="checkbox" value="16" disabled>16×16</label>
+          <label><input type="checkbox" value="32" disabled>32×32</label>
+          <label><input type="checkbox" value="48" disabled>48×48</label>
+          <label><input type="checkbox" value="64" disabled>64×64</label>
+          <label><input type="checkbox" value="128" disabled>128×128</label>
+          <label><input type="checkbox" value="256" disabled>256×256</label>
+        </div>
+      </div>
+      <div class="hint-text">
+        Mehrere Größen → eine ICO-Datei. Im ZIP erscheinen die Icons zusätzlich in nach Größen sortierten Unterordnern.
+      </div>
+    </div>
+
+    <div class="hint-text" style="margin-top:10px;">
+      ZIP-Struktur (wenn aktiviert): /Originale, /Konvertiert/&lt;FORMAT&gt;, /Konvertiert/ICO/&lt;Größe&gt;, /SVG, /Fehlerprotokoll/log.txt
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- DOM References ---
+  const body = document.body;
+  const themeToggle = document.getElementById("themeToggle");
+  const themeLabel = document.getElementById("themeLabel");
+
+  const dropzone = document.getElementById("dropzone");
+  const fileInput = document.getElementById("fileInput");
+  const bubbleGrid = document.getElementById("bubbleGrid");
+  const statusEl = document.getElementById("status");
+  const convertBtn = document.getElementById("convertBtn");
+  const formatGrid = document.getElementById("formatGrid");
+  const zipToggle = document.getElementById("zipToggle");
+  const icoOptions = document.getElementById("icoOptions");
+  const icoSizeContainer = document.getElementById("icoSizeContainer");
+
+  let images = []; // { id, file, dataUrl, isSvg, svgText }
+
+  // --- Theme Toggle ---
+  themeToggle.addEventListener("click", () => {
+    const current = body.getAttribute("data-theme") || "dark";
+    const next = current === "dark" ? "light" : "dark";
+    body.setAttribute("data-theme", next);
+    themeLabel.textContent = next === "dark" ? "Dark" : "Light";
+    themeToggle.firstElementChild.textContent = next === "dark" ? "🌙" : "☀️";
+  });
+
+  function setStatus(msg, type = "") {
+    statusEl.textContent = msg || "";
+    statusEl.className = "status" + (type ? " " + type : "");
+  }
+
+  function updateConvertButtonState() {
+    convertBtn.disabled = images.length === 0;
+  }
+
+  // --- Bubbles ---
+  function renderBubbles() {
+    bubbleGrid.innerHTML = "";
+    if (images.length === 0) {
+      setStatus("Noch keine Bilder geladen. Ziehe 1–100 Bilder hinein oder klicke auf die Box.");
+      updateConvertButtonState();
+      return;
+    }
+
+    images.forEach(imgObj => {
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.dataset.id = imgObj.id;
+
+      const img = document.createElement("img");
+      img.src = imgObj.dataUrl;
+      bubble.appendChild(img);
+
+      bubble.addEventListener("click", () => {
+        bubble.classList.add("removing");
+        setTimeout(() => {
+          images = images.filter(x => x.id !== imgObj.id);
+          renderBubbles();
+        }, 200);
+      });
+
+      bubbleGrid.appendChild(bubble);
+    });
+
+    setStatus(images.length + " Bild(er) geladen.", "ok");
+    updateConvertButtonState();
+  }
+
+  // --- File Handling ---
+  async function addFiles(fileList) {
+    const files = Array.from(fileList).filter(f => f.type.startsWith("image/"));
+    if (!files.length) {
+      setStatus("Keine gültigen Bilddateien gefunden.", "error");
+      return;
+    }
+    if (images.length + files.length > 100) {
+      setStatus("Maximal 100 Bilder erlaubt. Bitte weniger Dateien wählen.", "error");
+      return;
+    }
+
+    setStatus("Lade " + files.length + " Bild(er)...");
+
+    for (const file of files) {
+      await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async e => {
+          const dataUrl = e.target.result;
+          const isSvg = file.type === "image/svg+xml";
+          let svgText = null;
+          if (isSvg) {
+            try {
+              const resp = await fetch(dataUrl);
+              svgText = await resp.text();
+            } catch (err) {
+              console.error("SVG lesen fehlgeschlagen:", err);
+            }
+          }
+
+          images.push({
+            id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+            file,
+            dataUrl,
+            isSvg,
+            svgText
+          });
+          resolve();
+        };
+        reader.onerror = () => reject(new Error("Fehler beim Lesen von " + file.name));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    renderBubbles();
+  }
+
+  dropzone.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", e => {
+    if (e.target.files && e.target.files.length) {
+      addFiles(e.target.files);
+      fileInput.value = "";
+    }
+  });
+
+  dropzone.addEventListener("dragover", e => {
+    e.preventDefault();
+    dropzone.classList.add("dragover");
+  });
+  dropzone.addEventListener("dragleave", e => {
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+  });
+  dropzone.addEventListener("drop", e => {
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+      addFiles(e.dataTransfer.files);
+    }
+  });
+
+  // --- Format Tile Toggle ---
+  formatGrid.addEventListener("click", e => {
+    const tile = e.target.closest(".tile");
+    if (!tile) return;
+    tile.classList.toggle("active");
+    tile.classList.toggle("inactive");
+    updateIcoOptionsVisibility();
+  });
+
+  function getSelectedFormats() {
+    const selected = [];
+    formatGrid.querySelectorAll(".tile.active").forEach(tile => {
+      selected.push(tile.getAttribute("data-format"));
+    });
+    return selected;
+  }
+
+  function updateIcoOptionsVisibility() {
+    const icoTile = formatGrid.querySelector('.tile.ico');
+    if (icoTile && icoTile.classList.contains('active')) {
+      icoOptions.style.display = 'block';
+    } else {
+      icoOptions.style.display = 'none';
+    }
+  }
+  updateIcoOptionsVisibility();
+
+  // --- ICO Options ---
+  function getIcoMode() {
+    const checked = document.querySelector('input[name="icoMode"]:checked');
+    return checked ? checked.value : "auto";
+  }
+
+  function getCustomIcoSizes() {
+    const sizes = [];
+    icoSizeContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      if (cb.checked) sizes.push(parseInt(cb.value, 10));
+    });
+    return sizes.sort((a,b) => a-b);
+  }
+
+  document.querySelectorAll('input[name="icoMode"]').forEach(radio => {
+    radio.addEventListener("change", () => {
+      const mode = getIcoMode();
+      const checkboxes = icoSizeContainer.querySelectorAll('input[type="checkbox"]');
+      if (mode === "auto") {
+        checkboxes.forEach(cb => {
+          cb.disabled = true;
+        });
+      } else {
+        checkboxes.forEach(cb => {
+          cb.disabled = false;
+        });
+        // Standard: 16, 32, 48, 64, 128, 256 alle aktiv
+        checkboxes.forEach(cb => cb.checked = true);
+      }
+    });
+  });
+
+  function createCanvasFromImage(img, size) {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+
+  const imgRatio = img.width / img.height;
+  const targetRatio = 1; // quadratisch
+
+  let drawWidth, drawHeight, offsetX, offsetY;
+
+  if (imgRatio > targetRatio) {
+    // Bild ist breiter → Höhe füllt, Breite wird beschnitten
+    drawHeight = size;
+    drawWidth = size * imgRatio;
+    offsetX = -(drawWidth - size) / 2;
+    offsetY = 0;
+  } else {
+    // Bild ist höher → Breite füllt, Höhe wird beschnitten
+    drawWidth = size;
+    drawHeight = size / imgRatio;
+    offsetX = 0;
+    offsetY = -(drawHeight - size) / 2;
+  }
+
+  ctx.clearRect(0, 0, size, size);
+  ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+
+  return canvas;
+}
+
+  function buildIcoFromCanvases(canvases) {
+    // 32-bit PNG-like BGRA, DIBs with AND masks
+    const imagesData = canvases.map(canvas => {
+      const w = canvas.width;
+      const h = canvas.height;
+      const ctx = canvas.getContext("2d");
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const pixels = imgData.data;
+
+      const dibHeaderSize = 40;
+      const andMaskRowSize = Math.ceil(w / 32) * 4;
+      const andMaskSize = andMaskRowSize * h;
+      const pixelDataSize = w * h * 4;
+      const dibSize = dibHeaderSize + pixelDataSize + andMaskSize;
+
+      return {
+        w, h, pixels,
+        dibHeaderSize,
+        andMaskRowSize,
+        andMaskSize,
+        pixelDataSize,
+        dibSize
+      };
+    });
+
+    const iconDirSize = 6;
+    const entrySize = 16;
+    const imageCount = imagesData.length;
+
+    const totalImagesSize = imagesData.reduce((sum, img) => sum + img.dibSize, 0);
+    const totalSize = iconDirSize + entrySize * imageCount + totalImagesSize;
+
+    const buffer = new ArrayBuffer(totalSize);
+    const dv = new DataView(buffer);
+    let p = 0;
+
+    // ICONDIR
+    dv.setUint16(p, 0, true); p += 2; // reserved
+    dv.setUint16(p, 1, true); p += 2; // type = icon
+    dv.setUint16(p, imageCount, true); p += 2; // count
+
+    // Prepare directory entries
+    let offset = iconDirSize + entrySize * imageCount;
+    imagesData.forEach((img, index) => {
+      const w = img.w;
+      const h = img.h;
+      const sizeByte = (w === 256 ? 0 : w);
+
+      dv.setUint8(p++, sizeByte); // width
+      dv.setUint8(p++, sizeByte); // height
+      dv.setUint8(p++, 0);        // colors
+      dv.setUint8(p++, 0);        // reserved
+      dv.setUint16(p, 1, true); p += 2; // planes
+      dv.setUint16(p, 32, true); p += 2; // bitcount
+      dv.setUint32(p, img.dibSize, true); p += 4; // bytes in resource
+      dv.setUint32(p, offset, true); p += 4; // offset
+
+      offset += img.dibSize;
+    });
+
+    // Write each DIB
+    for (const img of imagesData) {
+      const w = img.w;
+      const h = img.h;
+      const pixels = img.pixels;
+      const andMaskRowSize = img.andMaskRowSize;
+      const andMaskSize = img.andMaskSize;
+      const pixelDataSize = img.pixelDataSize;
+      const dibHeaderSize = img.dibHeaderSize;
+
+      // BITMAPINFOHEADER
+      dv.setUint32(p, dibHeaderSize, true); p += 4;
+      dv.setInt32(p, w, true); p += 4;
+      dv.setInt32(p, h * 2, true); p += 4; // height * 2 (XOR + AND)
+      dv.setUint16(p, 1, true); p += 2;
+      dv.setUint16(p, 32, true); p += 2;
+      dv.setUint32(p, 0, true); p += 4; // BI_RGB
+      dv.setUint32(p, pixelDataSize + andMaskSize, true); p += 4;
+      dv.setUint32(p, 0, true); p += 4;
+      dv.setUint32(p, 0, true); p += 4;
+      dv.setUint32(p, 0, true); p += 4;
+      dv.setUint32(p, 0, true); p += 4;
+
+      // Pixel data (bottom-up, BGRA)
+      for (let y = h - 1; y >= 0; y--) {
+        for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          dv.setUint8(p++, pixels[i + 2]); // B
+          dv.setUint8(p++, pixels[i + 1]); // G
+          dv.setUint8(p++, pixels[i]);     // R
+          dv.setUint8(p++, pixels[i + 3]); // A
+        }
+      }
+
+      // AND mask (alles 0 = volle Deckkraft)
+      for (let row = 0; row < h; row++) {
+        for (let byte = 0; byte < andMaskRowSize; byte++) {
+          dv.setUint8(p++, 0);
+        }
+      }
+    }
+
+    return buffer;
+  }
+
+  function extractBaseName(name) {
+    return name.replace(/\.[^.]+$/, "") || "image";
+  }
+
+  function triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // --- Minimal ZIP Builder (Store-only, keine Kompression) ---
+  class SimpleZip {
+    constructor() {
+      this.files = [];
+    }
+
+    addFile(path, uint8array) {
+      this.files.push({ path, uint8array });
+    }
+
+    generate() {
+      const encoder = new TextEncoder();
+      const fileRecords = [];
+      const centralRecords = [];
+      let offset = 0;
+
+      for (const file of this.files) {
+        const nameBytes = encoder.encode(file.path);
+        const data = file.uint8array;
+        const crc = this.crc32(data);
+        const localHeaderOffset = offset;
+
+        const localHeader = new Uint8Array(30 + nameBytes.length);
+        const dv = new DataView(localHeader.buffer);
+
+        let p = 0;
+        dv.setUint32(p, 0x04034b50, true); p += 4; // local file header signature
+        dv.setUint16(p, 20, true); p += 2; // version needed
+        dv.setUint16(p, 0, true); p += 2; // general purpose
+        dv.setUint16(p, 0, true); p += 2; // compression (0 = store)
+        dv.setUint16(p, 0, true); p += 2; // file time
+        dv.setUint16(p, 0, true); p += 2; // file date
+        dv.setUint32(p, crc, true); p += 4;
+        dv.setUint32(p, data.length, true); p += 4; // compressed size
+        dv.setUint32(p, data.length, true); p += 4; // uncompressed size
+        dv.setUint16(p, nameBytes.length, true); p += 2; // file name length
+        dv.setUint16(p, 0, true); p += 2; // extra field length
+
+        localHeader.set(nameBytes, 30);
+
+        fileRecords.push(localHeader);
+        fileRecords.push(data);
+
+        offset += localHeader.length + data.length;
+
+        // Central directory header
+        const centralHeader = new Uint8Array(46 + nameBytes.length);
+        const cdv = new DataView(centralHeader.buffer);
+        p = 0;
+        cdv.setUint32(p, 0x02014b50, true); p += 4; // central file header signature
+        cdv.setUint16(p, 20, true); p += 2; // version made
+        cdv.setUint16(p, 20, true); p += 2; // version needed
+        cdv.setUint16(p, 0, true); p += 2; // general purpose
+        cdv.setUint16(p, 0, true); p += 2; // compression
+        cdv.setUint16(p, 0, true); p += 2; // time
+        cdv.setUint16(p, 0, true); p += 2; // date
+        cdv.setUint32(p, crc, true); p += 4;
+        cdv.setUint32(p, data.length, true); p += 4; // compressed
+        cdv.setUint32(p, data.length, true); p += 4; // uncompressed
+        cdv.setUint16(p, nameBytes.length, true); p += 2; // name length
+        cdv.setUint16(p, 0, true); p += 2; // extra length
+        cdv.setUint16(p, 0, true); p += 2; // comment length
+        cdv.setUint16(p, 0, true); p += 2; // disk number
+        cdv.setUint16(p, 0, true); p += 2; // internal attrs
+        cdv.setUint32(p, 0, true); p += 4; // external attrs
+        cdv.setUint32(p, localHeaderOffset, true); p += 4;
+        centralHeader.set(nameBytes, 46);
+
+        centralRecords.push(centralHeader);
+      }
+
+      const centralOffset = offset;
+      let centralSize = 0;
+      for (const rec of centralRecords) centralSize += rec.length;
+      offset += centralSize;
+
+      const endRecord = new Uint8Array(22);
+      const edv = new DataView(endRecord.buffer);
+      let p = 0;
+      edv.setUint32(p, 0x06054b50, true); p += 4; // end of central dir sig
+      edv.setUint16(p, 0, true); p += 2; // disk number
+      edv.setUint16(p, 0, true); p += 2; // disk of cd
+      edv.setUint16(p, this.files.length, true); p += 2;
+      edv.setUint16(p, this.files.length, true); p += 2;
+      edv.setUint32(p, centralSize, true); p += 4;
+      edv.setUint32(p, centralOffset, true); p += 4;
+      edv.setUint16(p, 0, true); p += 2; // comment length
+
+      const totalSize = offset + endRecord.length;
+      const out = new Uint8Array(totalSize);
+      let pos = 0;
+      for (const r of fileRecords) {
+        out.set(r, pos);
+        pos += r.length;
+      }
+      for (const r of centralRecords) {
+        out.set(r, pos);
+        pos += r.length;
+      }
+      out.set(endRecord, pos);
+
+      return out;
+    }
+
+    crc32(uint8) {
+      // Simple CRC32 implementation
+      let c = 0xffffffff;
+      for (let i = 0; i < uint8.length; i++) {
+        c ^= uint8[i];
+        for (let k = 0; k < 8; k++) {
+          const mask = -(c & 1);
+          c = (c >>> 1) ^ (0xedb88320 & mask);
+        }
+      }
+      return (c ^ 0xffffffff) >>> 0;
+    }
+  }
+
+  // --- Conversion Logic ---
+  convertBtn.addEventListener("click", async () => {
+    if (!images.length) {
+      setStatus("Keine Bilder geladen.", "error");
+      return;
+    }
+    const formats = getSelectedFormats();
+    if (!formats.length) {
+      setStatus("Bitte mindestens ein Ausgabeformat auswählen.", "error");
+      return;
+    }
+
+    const icoEnabled = formats.includes("ico");
+    const icoMode = getIcoMode();
+    const useZip = zipToggle.checked;
+
+    const errors = [];
+    const zip = useZip ? new SimpleZip() : null;
+    const encoder = useZip ? new TextEncoder() : null;
+
+    setStatus("Konvertiere " + images.length + " Bild(er)... das kann einen Moment dauern.");
+    convertBtn.disabled = true;
+
+    let totalOutputs = 0;
+
+    try {
+      for (const imgObj of images) {
+        const baseName = extractBaseName(imgObj.file.name);
+
+        // Original ins ZIP (optional)
+        if (useZip) {
+          const origBuffer = await imgObj.file.arrayBuffer();
+          zip.addFile("Originale/" + imgObj.file.name, new Uint8Array(origBuffer));
+        }
+
+        // Bild laden
+        const img = new Image();
+        img.src = imgObj.dataUrl;
+        await new Promise((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error("Bild konnte nicht geladen werden: " + imgObj.file.name));
+        });
+
+        // pro Format
+        for (const fmt of formats) {
+          try {
+            if (fmt === "svg") {
+              if (!imgObj.isSvg || !imgObj.svgText) continue;
+              const svgBytes = encoder ? encoder.encode(imgObj.svgText) : null;
+              if (useZip) {
+                zip.addFile("Konvertiert/SVG/" + baseName + ".svg", svgBytes);
+              } else {
+                const svgBlob = new Blob([imgObj.svgText], { type: "image/svg+xml" });
+                triggerDownload(svgBlob, baseName + ".svg");
+              }
+              totalOutputs++;
+              continue;
+            }
+
+            // Canvas für Rasterformate
+            // Für normale Formate nutzen wir eine "volle" Version, nicht zwingend 1:1 256
+            const maxSide = Math.max(img.width, img.height, 256);
+            const canvas = document.createElement("canvas");
+            canvas.width = maxSide;
+            canvas.height = maxSide;
+            const ctx = canvas.getContext("2d");
+            const sx = (maxSide - img.width) / 2;
+            const sy = (maxSide - img.height) / 2;
+            ctx.clearRect(0,0,maxSide,maxSide);
+            ctx.drawImage(img, sx, sy);
+
+            if (fmt === "ico") {
+              // Größenauswahl
+              let sizes = [];
+              if (icoMode === "auto") {
+                sizes = [256];
+              } else {
+                sizes = getCustomIcoSizes();
+                if (sizes.length === 0) {
+                  sizes = [256];
+                }
+              }
+
+              const canvases = sizes.map(size => createCanvasFromImage(img, size));
+              const icoBuffer = buildIcoFromCanvases(canvases);
+              const icoBytes = new Uint8Array(icoBuffer);
+
+              if (useZip) {
+                // Eine ICO-Datei in mehrere Größenordner spiegeln
+                sizes.forEach(size => {
+                  zip.addFile("Konvertiert/ICO/" + size + "/" + baseName + ".ico", icoBytes);
+                });
+              } else {
+                const icoBlob = new Blob([icoBuffer], { type: "image/x-icon" });
+                triggerDownload(icoBlob, baseName + ".ico");
+              }
+              totalOutputs++;
+              continue;
+            }
+
+            // Andere Rasterformate via canvas.toBlob
+            let mime = "image/png";
+            let ext = "png";
+            if (fmt === "jpeg") { mime = "image/jpeg"; ext = "jpg"; }
+            else if (fmt === "webp") { mime = "image/webp"; ext = "webp"; }
+            else if (fmt === "gif") { mime = "image/gif"; ext = "gif"; }
+            else if (fmt === "bmp") { mime = "image/bmp"; ext = "bmp"; }
+            else if (fmt === "avif") { mime = "image/avif"; ext = "avif"; }
+
+            const blob = await new Promise(resolve => {
+              if (!canvas.toBlob) {
+                resolve(null);
+                return;
+              }
+              canvas.toBlob(b => resolve(b), mime, fmt === "jpeg" ? 0.9 : 0.95);
+            });
+            if (!blob) {
+              errors.push("Format " + fmt + " wird von diesem Browser nicht unterstützt (Bild: " + imgObj.file.name + ").");
+              continue;
+            }
+
+            if (useZip) {
+              const buf = await blob.arrayBuffer();
+              const bytes = new Uint8Array(buf);
+              const folderName = "Konvertiert/" + ext.toUpperCase();
+              zip.addFile(folderName + "/" + baseName + "." + ext, bytes);
+            } else {
+              triggerDownload(blob, baseName + "." + ext);
+            }
+            totalOutputs++;
+
+          } catch (errFmt) {
+            console.error("Fehler bei Format", fmt, "für", imgObj.file.name, errFmt);
+            errors.push("Fehler bei " + fmt + " für " + imgObj.file.name + ": " + errFmt.message);
+          }
+        }
+
+        // SVG-Original separat, falls erwünscht
+        if (useZip && imgObj.isSvg && imgObj.svgText) {
+          const svgBytes = encoder.encode(imgObj.svgText);
+          zip.addFile("SVG/" + baseName + ".svg", svgBytes);
+        }
+      }
+
+      if (useZip) {
+        if (errors.length) {
+          const text = errors.join("\n");
+          const logBytes = encoder.encode(text);
+          zip.addFile("Fehlerprotokoll/log.txt", logBytes);
+        }
+        const zipBytes = zip.generate();
+        const zipBlob = new Blob([zipBytes], { type: "application/zip" });
+        const fileName = "conversion_" + new Date().toISOString().replace(/[:.]/g, "-") + ".zip";
+        triggerDownload(zipBlob, fileName);
+      }
+
+      if (!totalOutputs) {
+        setStatus("Keine der gewählten Formate konnten erzeugt werden.", "error");
+      } else {
+        if (useZip) {
+          setStatus("Fertig! ZIP mit " + totalOutputs + " erzeugten Datei(en) erstellt.", "ok");
+        } else {
+          setStatus("Fertig! " + totalOutputs + " Datei(en) erzeugt und heruntergeladen.", "ok");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus("Fehler bei der Konvertierung: " + err.message, "error");
+    } finally {
+      convertBtn.disabled = false;
+    }
+  });
+
+  // Initial
+  renderBubbles();
+</script>
+</body>
+</html>
